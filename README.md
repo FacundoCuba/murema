@@ -8,13 +8,8 @@ MuReMa was originally created as an easy way to work with segmented viruses, but
 ## Table of Contents
 - [Installation](#installation)
 - [Setting up the Inputs](#setting-up-the-inputs)
-- [Usage](#usage)
+- [How to use MuReMa](#how-to-use-murema)
 - [The Outputs](#the-outputs)
-- [Features](#features)
-- [Configuration](#configuration)
-- [Examples](#examples)
-- [Contributing](#contributing)
-- [License](#license)
 - [Contact](#contact)
 - [Acknowledgments](#acknowledgments)
 
@@ -31,20 +26,42 @@ Be kind and please acknowledge these great authors too!
 
 ## Setting up the Inputs
 ### Compatible reads and sufix
-### Samples file format
-### Multifasta file
+MuReMa works with trimmed paired-end reads. The reads must have the following suffixes: `_1.fastq.gz` for forward reads and `_2.fastq.gz` for reverse reads.
 
-## Usage
+### Samples file format
+The samples_file must be a plain text file with one sample name per line as follows:
+```
+sample-1
+sample-2
+sample-3
+...
+sample-n
+```
+### Multifasta file
+The multifasta_file is the backbone of MuReMa. The selection of references will impact the output of this tool. The header of each reference should be as short as possible and edited to remove invalid characters for a bash environment. The multifasta_file must be concatenation of fastas as follows:
+```
+>reference-1
+sequence of refence 1
+>reference-2
+sequence of refence 2
+>reference-3
+sequence of refence 3
+...
+>reference-n
+sequence of refence n
+```
+
+## How to use MuReMa
 ### Must provide options
-- `-s`, 
-- `-d`,
+- `-s`, The samples file that contains the names of the samples to be analyzed.
+- `-d`, The multifasta file that contains the reference sequences to map to.
 ```bash
 # Basic command
-bash MuReMa.sh -s samples_names_file -d multifasta_file
+bash MuReMa.sh -s samples_file -d multifasta_file
 ```
 ### Optional options
-- `-r`,
-- `-m`,
+- `-r`, The read length. An integer > 0. Default = 150.
+- `-m`, The mean depth threshold. An integer > 0. Default = 1000.
 ## The Outputs
 ### Directory structure
 ### The files
@@ -52,3 +69,7 @@ bash MuReMa.sh -s samples_names_file -d multifasta_file
 #### BAMs
 #### Depth dispersion and Coverage Proportion graphs
 #### Consensus made
+
+## Contact
+facundogcuba@gmail.com
+## Acknowledgments
