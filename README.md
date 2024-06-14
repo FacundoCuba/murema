@@ -1,5 +1,9 @@
-# MuReMa: Multi-reference Read Mapper
+# IMPORTANT: README under construction
 
+
+
+
+# MuReMa: Multi-reference Read Mapper
 MuReMa is a tool designed to map paired-end reads to multiple reference genomes simultaneously, ideal for comparative genomics and metagenomics studies.
 
 ## The Spirit of MuReMa
