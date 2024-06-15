@@ -162,7 +162,7 @@ while IFS= read -r sample_name; do
         {
             echo ""
             echo "Finished creating consensus sequence for $sample_name using $ref_name as reference"
-        } | tee -a "$log_file"
+        } | tee -a ../"$log_file"
         # Run grapher.py script to generate graphs per refs
         python3 ../grapher.py "${sample_name}.${ref_name}.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold"
         if [ $? -ne 0 ]; then
