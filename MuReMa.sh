@@ -2,13 +2,13 @@
 
 # Function to display script usage
 function display_usage() {
-    echo "Usage: $0 -s FILE -d FILE [-r INTEGER] [-m INTEGER] [-h]"
+    echo "Usage: $0 -s FILE -d FILE [-r INTEGER] [-t INTEGER] [-h]"
     echo ""
     echo "Options:"
     echo "  -s FILE     Path to the samples file"
     echo "  -d FILE     Path to the multifasta file"
     echo "  -r INTEGER  Read length (default: 150)"
-    echo "  -m INTEGER  Mean Depth threshold (default: 1000)"
+    echo "  -t INTEGER  Average Depth threshold (default: 1000)"
     echo "  -h          Display this help message"
     exit 0
 }
@@ -17,15 +17,15 @@ function display_usage() {
 samples_file=""
 multifasta_file=""
 read_length=150
-mean_depth_threshold=1000
+avg_depth_threshold=1000
 
 # Parse options using getopts
-while getopts "s:d:r:m:h" option; do
+while getopts "s:d:r:t:h" option; do
     case "$option" in
         s) samples_file=$OPTARG;;
         d) multifasta_file=$OPTARG;;
         r) read_length=$OPTARG;;
-        m) mean_depth_threshold=$OPTARG;;
+        t) avg_depth_threshold=$OPTARG;;
         h) display_usage;;
         :) printf "missing argument for -%s\n" "$OPTARG" >&2; display_usage >&2; exit 1;;
         \?) printf "illegal option: -%s\n" "$OPTARG" >&2; display_usage >&2; exit 1;;
@@ -47,7 +47,7 @@ log_file="${samples_file}.log"
     echo "Samples file: $samples_file"
     echo "Multifasta DB: $multifasta_file"
     echo "Read length: $read_length"
-    echo "Mean Depth threshold: $mean_depth_threshold"
+    echo "Average Depth threshold: $avg_depth_threshold"
 } > "$log_file"
 
 # Inputs validation
@@ -66,8 +66,8 @@ if ! [[ "$read_length" =~ ^[1-9][0-9]*$ ]]; then
     exit 1
 fi
 
-if ! [[ "$mean_depth_threshold" =~ ^[1-9][0-9]*$ ]]; then
-    echo "Error: $mean_depth_threshold is not a valid integer greater than 0." | tee -a "$log_file"
+if ! [[ "$avg_depth_threshold" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Error: $avg_depth_threshold is not a valid integer greater than 0." | tee -a "$log_file"
     exit 1
 fi
 
@@ -94,20 +94,20 @@ cd ../
 
 # Process each sample
 while IFS= read -r sample_name; do
+    mkdir -p "$sample_name"
+    cd "$sample_name"
     {    
         echo ""
         echo "Processing Sample: $sample_name"
-    } | tee -a "$log_file"
-    mkdir -p "$sample_name"
-    cd "$sample_name"
+    } | tee -a ../"$log_file"
 
-    # Align reads with bowtie2, sort, and filter with samtools
+    # Align reads and sort bam
     bowtie2 --end-to-end --very-sensitive -x "../DB_dir/murema_DB_index" -1 "../${sample_name}_1.fastq.gz" -2 "../${sample_name}_2.fastq.gz" | samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.sorted.bam"
     if [ $? -ne 0 ]; then
         {
             echo ""
-            echo "Error: Bowtie2 or samtools sorting failed for sample $sample_name"
-        } | tee -a "$log_file"
+            echo "Error: bowtie2 or samtools sorting failed for sample $sample_name"
+        } | tee -a ../"$log_file"
         cd ../
         continue
     fi
@@ -116,45 +116,32 @@ while IFS= read -r sample_name; do
     samtools index "${sample_name}.sorted.bam"
     samtools idxstats "${sample_name}.sorted.bam" > "${sample_name}.tsv"
 
-    ### Formater
     # Run formater.py script to filter and format the TSV files
-    python3 ../formater.py "${sample_name}.tsv" "$sample_name" "$read_length" "$mean_depth_threshold"
+    python3 ../formater.py "${sample_name}.tsv" "$sample_name" "$read_length" "$avg_depth_threshold"
     if [ $? -ne 0 ]; then
         {
             echo ""
             echo "Error: formater.py failed for sample $sample_name"
-        } | tee -a "$log_file"
+        } | tee -a ../"$log_file"
         cd ../
         continue
     fi
     sed -i 's/\r$//' "${sample_name}.filtered.tsv"
     sed -i 's/\r$//' "${sample_name}.refs.tsv"
-
-    # Filter the BAM file by the different references and output to a separate BAM file for each one
-    while IFS= read -r ref_name; do
-        samtools view -b "${sample_name}.sorted.bam" "$ref_name" > "${sample_name}.${ref_name}.sorted.bam"
-    done < "${sample_name}.refs.tsv"
-
-    ### Grapher
-    # Generate a dispersion graph for each reference
-    while IFS= read -r ref_name; do
-        python3 ../grapher.py "${sample_name}.${ref_name}.sorted.bam" "$sample_name" "$ref_name" "$mean_depth_threshold"
-    done < "${sample_name}.refs.tsv"
-    cd ../
     {
         echo ""
-        echo "Finished creating filtered.tsv report and graphs for $sample_name"
-    } | tee -a "$log_file"
+        echo "Finished creating filtered and refs reports for $sample_name"
+    } | tee -a ../"$log_file"
+    cd ../
 done < "$samples_file"
 
-### Consensus
+# Prepare refs to create a consensus and graphs
 cd DB_dir/
 cat ../*/*.refs.tsv > all_refs.tsv
-uniq all_refs.tsv > uniq_refs.tsv # unique references with an overall vertical depth >= $mean_depth_threshold 
+uniq all_refs.tsv > uniq_refs.tsv
 
 # Read the references file and extract the sequences
 while IFS= read -r ref_name; do
-    # Extract the sequence for the reference name and save it to a separate fasta file
     awk -v RS='>' -v ref="$ref_name" '$1 == ref {print ">"$0}' murema_DB.fasta > "${ref_name}.fasta"
 done < uniq_refs.tsv
 
@@ -166,20 +153,34 @@ for f in *.fasta; do
 done
 cd ../
 
+# Consensus & Grapher
 while IFS= read -r sample_name; do
-    {
-        echo ""
-        echo "Preparing consensus sequence for $sample_name"
-    } | tee -a "$log_file"
     cd "$sample_name"
     while IFS= read -r ref_name; do
+        bowtie2 --end-to-end --very-sensitive -x "../DB_dir/${ref_name}_index" -1 "../${sample_name}_1.fastq.gz" -2 "../${sample_name}_2.fastq.gz" | samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.${ref_name}.sorted.bam"
         samtools mpileup -A -d 6000000 -B -Q 0 --reference ../DB_dir/${ref_name}.fasta $sample_name.$ref_name.sorted.bam | ivar consensus -p $sample_name.$ref_name.consensus -t 0.75
+        {
+            echo ""
+            echo "Finished creating consensus sequence for $sample_name using $ref_name as reference"
+        } | tee -a "$log_file"
+        # Run grapher.py script to generate graphs per refs
+        python3 ../grapher.py "${sample_name}.${ref_name}.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold"
+        if [ $? -ne 0 ]; then
+            {
+                echo ""
+                echo "Error: grapher.py failed for sample $sample_name"
+            } | tee -a ../"$log_file"
+            cd ../
+            continue
+        fi
     done < "${sample_name}.refs.tsv"
-    cd ../
     {
         echo ""
+        echo "Finished creating graphs for $sample_name"
+        echo ""
         echo "Finished Processing Sample: $sample_name"
-    } | tee -a "$log_file"
+    } | tee -a ../"$log_file"
+    cd ../
 done < "$samples_file"
 
 {
