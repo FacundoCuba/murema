@@ -42,7 +42,7 @@ sample-3
 sample-n
 ```
 ### Multifasta file
-The multifasta_file is the backbone of MuReMa. The selection of references will impact the output of this tool. The header of each reference should be as short as possible and edited to remove invalid characters for a bash environment. The multifasta_file must be concatenation of fastas as follows:
+The multifasta_file is the backbone of MuReMa. The selection of references will impact the output of this tool. The header of each reference should be as short as possible and edited to remove invalid characters for a bash environment. The multifasta_file must be a concatenation of fastas as follows:
 ```
 >reference-1
 sequence of refence 1
@@ -65,7 +65,7 @@ bash MuReMa.sh -s samples_file -d multifasta_file
 ```
 ### Optional options
 - `-r`, The read length. An integer > 0. Default = 150.
-- `-m`, The mean depth threshold. An integer > 0. Default = 1000.
+- `-t`, The average depth threshold. An integer > 0. Default = 1000. The average depth threshold is a key value. If a reference equals or surpasses it, MuReMa will select that reference to create a consensus and generate a graph for it. The threshold could be lower if you work with bacteria (for example, `-t 100`) or higher if you are working with amplicons (for example, `-t 3000`).
 ## The Outputs
 ### Directory structure
 ### The files
@@ -73,7 +73,10 @@ bash MuReMa.sh -s samples_file -d multifasta_file
 #### BAMs
 #### Depth dispersion and Coverage Proportion graphs
 #### Consensus made
+#### Log file
 
 ## Contact
 facundogcuba@gmail.com
+
 ## Acknowledgments
+To my co-workers who served as alpha testers, provided ideas, and suggested features for MuReMa.
