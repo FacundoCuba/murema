@@ -41,6 +41,11 @@ sample-3
 ...
 sample-n
 ```
+TIP: To create the samples_file in the terminal, use the following commands:
+```
+ls *_1.fastq.gz > samples_file.txt
+sed -i 's/_1.fastq.gz//g' samples_file.txt
+```
 ### Multifasta file
 The multifasta_file is the backbone of MuReMa. The selection of references will impact the output of this tool. The header of each reference should be as short as possible and edited to remove invalid characters for a bash environment. The multifasta_file must be a concatenation of fastas as follows:
 ```
