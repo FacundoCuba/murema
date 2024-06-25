@@ -55,7 +55,7 @@ def generate_filtered_tsv(input_tsv, sample_name):
     return filtered_tsv_file
 
 # Function to generate refs TSV file
-def generate_refs_tsv(filtered_tsv, sample_name, read_length, mean_depth_threshold):
+def generate_refs_tsv(filtered_tsv, sample_name, read_length, avg_depth_threshold):
     refs_tsv_file = f'{sample_name}.refs.tsv'
     with open(filtered_tsv, 'r') as infile, open(refs_tsv_file, 'w', newline='') as outfile:
         tsv_reader = csv.reader(infile, delimiter='\t')
@@ -63,7 +63,7 @@ def generate_refs_tsv(filtered_tsv, sample_name, read_length, mean_depth_thresho
         next(tsv_reader)  # Skip the header
         for row in tsv_reader:
             try:
-                if (int(row[2]) * read_length) / int(row[1]) >= mean_depth_threshold:
+                if (int(row[2]) * read_length) / int(row[1]) >= avg_depth_threshold:
                     writer.writerow([row[0]])
             except (IndexError, ValueError):
                 print(f"Skipped invalid row: {row}")
@@ -72,13 +72,13 @@ def generate_refs_tsv(filtered_tsv, sample_name, read_length, mean_depth_thresho
 # Entry point of the script
 if __name__ == '__main__':
     if len(sys.argv) != 5:
-        print("Usage: python3 formater.py <input_tsv_file> <sample_name> <read_length> <mean_depth_threshold>")
+        print("Usage: python3 formater.py <input_tsv_file> <sample_name> <read_length> <avg_depth_threshold>")
         sys.exit(1)
 
     input_tsv = sys.argv[1]
     sample_name = sys.argv[2]
     read_length = int(sys.argv[3])
-    mean_depth_threshold = int(sys.argv[4])
+    avg_depth_threshold = int(sys.argv[4])
 
     # Check if input files exist
     for file in [input_tsv]:
@@ -87,6 +87,6 @@ if __name__ == '__main__':
             sys.exit(1)
 
     filtered_tsv = generate_filtered_tsv(input_tsv, sample_name)
-    refs_tsv = generate_refs_tsv(filtered_tsv, sample_name, read_length, mean_depth_threshold)
+    refs_tsv = generate_refs_tsv(filtered_tsv, sample_name, read_length, avg_depth_threshold)
     print(f"Generated filtered TSV file: {filtered_tsv}")
     print(f"Generated refs TSV file: {refs_tsv}")

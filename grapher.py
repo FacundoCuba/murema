@@ -3,7 +3,7 @@ import pysam
 import matplotlib.pyplot as plt
 import numpy as np
 
-def generate_dispersion_graph(bam_file, sample_name, ref_name, mean_depth_threshold):
+def generate_dispersion_graph(bam_file, sample_name, ref_name, avg_depth_threshold):
     try:
         # Open the BAM file
         with pysam.AlignmentFile(bam_file, "rb") as samfile:
@@ -30,21 +30,22 @@ def generate_dispersion_graph(bam_file, sample_name, ref_name, mean_depth_thresh
             ax1.set_xlim(left=0, right=ref_length)
             ax1.set_xlabel("Position")
             ax1.set_ylabel("Depth")
-            colors_by_depth = ['red' if x == 0 else 'yellow' if (0 < x < mean_depth_threshold) else 'green' for x in depth_per_position]
+            colors_by_depth = ['red' if x == 0 else 'yellow' if (0 < x < avg_depth_threshold) else 'green' for x in depth_per_position]
             ax1.scatter(positions, depth_per_position, marker='|', color=colors_by_depth, label='Vertical Depth')
 
             # Calculate cumulative fraction for coverage
             ax2 = ax1.twinx()
             ax2.set_ylim(bottom=0, top=1.00)
-            ax2.set_ylabel("Coverage")
-            mask = np.array(depth_per_position) >= mean_depth_threshold
-            cumulative_coverage = np.cumsum(mask) / len(positions)
-            max_coverage = cumulative_coverage[-1]
-            ax2.annotate(f'Max Coverage = {max_coverage:.2f}', xy=(1.02,max_coverage), xycoords='axes fraction', fontsize=10, color='blue', va='center')
-            ax2.plot(positions, cumulative_coverage, linestyle='-', color='blue', label='Horizontal Coverage')
-            plt.title(f"Depth Dispersion and Coverage Proportion for {sample_name} using {ref_name} as reference")
-
-            # Add legend
+            ax2.set_ylabel("Mapped Proportion")
+            mask = np.array(depth_per_position) >= avg_depth_threshold
+            cumulative_proportion = np.cumsum(mask) / len(positions)
+            mapped_proportion = cumulative_proportion[-1]
+            # If len(positions) == ref_length: mapped_proportion == "max coverage"
+            ax2.annotate(f'Max Proportion = {mapped_proportion:.2f}', xy=(1.03,mapped_proportion), xycoords='axes fraction', fontsize=10, color='blue', va='center')
+            ax2.plot(positions, cumulative_proportion, linestyle='-', color='blue', label='Mapped Proportion')
+            
+            # Set title and legend
+            plt.title(f"Depth Dispersion and Mapped Proportion for {sample_name} using {ref_name} as reference")
             fig.legend(loc='lower center')
 
             # Save the graph as an image
@@ -61,12 +62,12 @@ def generate_dispersion_graph(bam_file, sample_name, ref_name, mean_depth_thresh
 # Entry point of the script
 if __name__ == "__main__":
     if len(sys.argv) != 5:
-        print("Usage: python grapher.py <bam_file> <sample_name> <ref_name> <mean_depth_threshold>")
+        print("Usage: python grapher.py <bam_file> <sample_name> <ref_name> <avg_depth_threshold>")
         sys.exit(1)
     
     bam_file = sys.argv[1]
     sample_name = sys.argv[2]
     ref_name = sys.argv[3]
-    mean_depth_threshold = int(sys.argv[4])
+    avg_depth_threshold = int(sys.argv[4])
 
-    generate_dispersion_graph(bam_file, sample_name, ref_name, mean_depth_threshold)
+    generate_dispersion_graph(bam_file, sample_name, ref_name, avg_depth_threshold)

@@ -135,7 +135,7 @@ while IFS= read -r sample_name; do
     cd ../
 done < "$samples_file"
 
-# Prepare refs to create a consensus and graphs
+# Prepare refs to create the consensus and graphs
 cd DB_dir/
 cat ../*/*.refs.tsv > all_refs.tsv
 uniq all_refs.tsv > uniq_refs.tsv
