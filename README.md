@@ -65,7 +65,7 @@ bash MuReMa.sh -s samples_file -d multifasta_file
 ```
 ### Optional options
 - `-r`, The read length. An integer > 0. Default = 150.
-- `-t`, The average depth threshold. An integer > 0. Default = 1000. The average depth threshold is a key value. If the reads aligned to a reference equals or surpasses it, MuReMa will select that reference to obtain a consensus using it as template and generate a graph for it. The threshold could be lower if you work with bacteria (for example, `-t 100`) or higher if you are working with amplicons (for example, `-t 3000`).
+- `-t`, The average depth threshold. An integer > 0. Default = 1000. The average depth threshold is a key value. If the reads aligned to a reference equals or surpasses it, MuReMa will select that reference to obtain a consensus using it as template and generate a graph for it. The threshold could be lower if you work with bacterial reads (for example, `-t 100`) or higher if you are working with amplicons (for example, `-t 3000`).
 ```bash
 # Command for bacterial reads and longer reads
 bash MuReMa.sh -s samples_file -d multifasta_file -r 250 -t 100
@@ -73,7 +73,7 @@ bash MuReMa.sh -s samples_file -d multifasta_file -r 250 -t 100
 ## The Outputs
 - A directory per sample containing:
   - Filtered and Refs TSVs: `sample-1.filtered.tsv` includes metrics like mapping reference, reference length, number of mapped reads, and percentage of mapped reads. `sample-1.refs.tsv` lists references surpassing the average depth threshold.
-  - BAMs: `sample-1.bam` for the original alignment and `sample-1.reference-1.bam` for each individual reference surpassing the threshold.
+  - BAMs: `sample-1.sorted.bam` for the original alignment and `sample-1.reference-1.sorted.bam` for each individual reference surpassing the threshold.
   - Depth dispersion and Mapped Proportion graphs:
     - X-axis: Number of positions, equal to the reference length.
     - Left Y-axis: Depth dispersion represented by short vertical lines (|), one per mapped position. Color-coded as green if the depth for that position is equal to or higher than the threshold, yellow if below the threshold but higher than 0, and red if the depth is 0.
