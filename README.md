@@ -67,7 +67,7 @@ bash MuReMa.sh -s samples_file -d multifasta_file
 - `-r`, The read length. An integer > 0. Default = 150.
 - `-t`, The average depth threshold. An integer > 0. Default = 1000. The average depth threshold is a key value. If the reads aligned to a reference equals or surpasses it, MuReMa will select that reference to obtain a consensus using it as template and generate a graph for it. The threshold could be lower if you work with bacterial reads (for example, `-t 100`) or higher if you are working with amplicons (for example, `-t 3000`).
 ```bash
-# Command for bacterial reads and longer reads
+# Example for bacterial reads and longer reads
 bash MuReMa.sh -s samples_file -d multifasta_file -r 250 -t 100
 ```
 ## The Outputs
@@ -83,8 +83,8 @@ bash MuReMa.sh -s samples_file -d multifasta_file -r 250 -t 100
 - DB_dir directory:
   - A copy of the original multifasta file used as the database reference sequences and its index files.
   - A TSV file listing references surpassing the average depth threshold.
-  - The Extracted individual references and their index files.
-- samples_file.log: Simple logging system to track script behavior and identify errors."
+  - The extracted individual references and their index files.
+- samples_file.log: Simple logging system to track script behavior and identify errors.
 
 ## Contact
 Email me to: facundogcuba@gmail.com or raise an issue
