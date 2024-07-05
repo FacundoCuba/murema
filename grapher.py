@@ -14,7 +14,7 @@ def generate_dispersion_graph(bam_file, sample_name, ref_name, avg_depth_thresho
             positions = []
             depth_per_position = []
 
-            # Iterate through the reads and calculate depth of coverage
+            # Iterate through the reads and calculate depth
             for column in samfile.pileup():
                 try:
                     positions.append(column.reference_pos)
@@ -33,19 +33,18 @@ def generate_dispersion_graph(bam_file, sample_name, ref_name, avg_depth_thresho
             colors_by_depth = ['red' if x == 0 else 'yellow' if (0 < x < avg_depth_threshold) else 'green' for x in depth_per_position]
             ax1.scatter(positions, depth_per_position, marker='|', color=colors_by_depth, label='Vertical Depth')
 
-            # Calculate cumulative fraction for coverage
+            # Calculate cumulative fraction for mapped reads
             ax2 = ax1.twinx()
             ax2.set_ylim(bottom=0, top=1.00)
-            ax2.set_ylabel("Mapped Proportion")
+            ax2.set_ylabel("Coverage")
             mask = np.array(depth_per_position) >= avg_depth_threshold
-            cumulative_proportion = np.cumsum(mask) / len(positions)
-            mapped_proportion = cumulative_proportion[-1]
-            # If len(positions) == ref_length: mapped_proportion == "max coverage"
-            ax2.annotate(f'Max Proportion = {mapped_proportion:.2f}', xy=(1.03,mapped_proportion), xycoords='axes fraction', fontsize=10, color='blue', va='center')
-            ax2.plot(positions, cumulative_proportion, linestyle='-', color='blue', label='Mapped Proportion')
+            cumulative_proportion = np.cumsum(mask) / ref_length
+            coverage = cumulative_proportion[-1]
+            ax2.annotate(f'{coverage:.2f}', xy=(1.04,coverage), xycoords='axes fraction', fontsize=10, color='blue', va='center')
+            ax2.plot(positions, cumulative_proportion, linestyle='-', color='blue', label='Horizontal Coverage')
             
             # Set title and legend
-            plt.title(f"Depth Dispersion and Mapped Proportion for {sample_name} using {ref_name} as reference")
+            plt.title(f"Depth Dispersion and Coverage for {sample_name} using {ref_name} as reference")
             fig.legend(loc='lower center')
 
             # Save the graph as an image
