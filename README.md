@@ -77,8 +77,7 @@ bash MuReMa.sh -s samples_file -d multifasta_file -r 250 -t 100
   - Depth dispersion and Mapped Proportion graphs:
     - X-axis: Number of positions, equal to the reference length.
     - Left Y-axis: Depth dispersion represented by short vertical lines (|), one per mapped position. Color-coded as green if the depth for that position is equal to or higher than the threshold, yellow if below the threshold but higher than 0, and red if the depth is 0.
-    - Right Y-axis: Mapped proportion, calculated as the cumulative sum of positions with depth equal to or higher than the threshold, divided by the total number of positions. Represented by a blue line showing values between 0 and 1.
-    - NOTE: When the total number of positions equals the reference length, the mapped proportion represents horizontal coverage.
+    - Right Y-axis: Coverage, calculated as the cumulative sum of positions with depth equal to or higher than the threshold, divided by the reference sequence length. Represented by a blue line showing values between 0 and 1.
   - Consensus: Consensus sequences in FA format for each individual reference `sample-1.reference-1.consensus.fa`.
 - DB_dir directory:
   - A copy of the original multifasta file used as the database reference sequences and its index files.
