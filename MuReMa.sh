@@ -5,8 +5,8 @@ function display_usage() {
     echo "Usage: $0 -s FILE -d FILE [-r INTEGER] [-t INTEGER] [-h]"
     echo ""
     echo "Options:"
-    echo "  -s FILE     Path to the samples file"
-    echo "  -d FILE     Path to the multifasta file"
+    echo "  -s FILE     Samples file OR path to the samples file"
+    echo "  -d FILE     Multifasta file OR path to the multifasta file"
     echo "  -r INTEGER  Read length (default: 150)"
     echo "  -t INTEGER  Average Depth threshold (default: 1000)"
     echo "  -h          Display this help message"
@@ -22,8 +22,8 @@ avg_depth_threshold=1000
 # Parse options using getopts
 while getopts "s:d:r:t:h" option; do
     case "$option" in
-        s) samples_file=$OPTARG;;
-        d) multifasta_file=$OPTARG;;
+        s) samples_file=$PWD/$OPTARG;;
+        d) multifasta_file=$PWD/$OPTARG;;
         r) read_length=$OPTARG;;
         t) avg_depth_threshold=$OPTARG;;
         h) display_usage;;
@@ -99,7 +99,7 @@ while IFS= read -r sample_name; do
     {    
         echo ""
         echo "Processing Sample: $sample_name"
-    } | tee -a ../"$log_file"
+    } | tee -a "$log_file"
 
     # Align reads and sort bam
     bowtie2 --end-to-end --very-sensitive -x "../DB_dir/murema_DB_index" -1 "../${sample_name}_1.fastq.gz" -2 "../${sample_name}_2.fastq.gz" | samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.sorted.bam"
@@ -107,7 +107,7 @@ while IFS= read -r sample_name; do
         {
             echo ""
             echo "Error: bowtie2 or samtools sorting failed for sample $sample_name"
-        } | tee -a ../"$log_file"
+        } | tee -a "$log_file"
         cd ../
         continue
     fi
@@ -122,7 +122,7 @@ while IFS= read -r sample_name; do
         {
             echo ""
             echo "Error: formater.py failed for sample $sample_name"
-        } | tee -a ../"$log_file"
+        } | tee -a "$log_file"
         cd ../
         continue
     fi
@@ -131,7 +131,7 @@ while IFS= read -r sample_name; do
     {
         echo ""
         echo "Finished creating filtered and refs reports for $sample_name"
-    } | tee -a ../"$log_file"
+    } | tee -a "$log_file"
     cd ../
 done < "$samples_file"
 
@@ -162,14 +162,14 @@ while IFS= read -r sample_name; do
         {
             echo ""
             echo "Finished creating consensus sequence for $sample_name using $ref_name as reference"
-        } | tee -a ../"$log_file"
+        } | tee -a "$log_file"
         # Run grapher.py script to generate graphs per refs
         python3 ../grapher.py "${sample_name}.${ref_name}.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold"
         if [ $? -ne 0 ]; then
             {
                 echo ""
                 echo "Error: grapher.py failed for sample $sample_name"
-            } | tee -a ../"$log_file"
+            } | tee -a "$log_file"
             cd ../
             continue
         fi
@@ -179,7 +179,7 @@ while IFS= read -r sample_name; do
         echo "Finished creating graphs for $sample_name"
         echo ""
         echo "Finished Processing Sample: $sample_name"
-    } | tee -a ../"$log_file"
+    } | tee -a "$log_file"
     cd ../
 done < "$samples_file"
 
