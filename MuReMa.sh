@@ -158,7 +158,7 @@ while IFS= read -r sample_name; do
     cd "$sample_name"
     while IFS= read -r ref_name; do
         bowtie2 --end-to-end --very-sensitive -x "../DB_dir/${ref_name}_index" -1 "../${sample_name}_1.fastq.gz" -2 "../${sample_name}_2.fastq.gz" | samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.${ref_name}.sorted.bam"
-        samtools mpileup -A -d 6000000 -B -Q 0 --reference ../DB_dir/${ref_name}.fasta $sample_name.$ref_name.sorted.bam | ivar consensus -p $sample_name.$ref_name.consensus -t 0.75
+        samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference ../DB_dir/${ref_name}.fasta $sample_name.$ref_name.sorted.bam | ivar consensus -p $sample_name.$ref_name.consensus -t 0.75
         {
             echo ""
             echo "Finished creating consensus sequence for $sample_name using $ref_name as reference"
