@@ -139,10 +139,16 @@ done < "$samples_file"
 cd DB_dir/
 cat ../*/*.refs.tsv > all_refs.tsv
 uniq all_refs.tsv > uniq_refs.tsv
+sed -i 's/\r$//' "all_refs.tsv"
+sed -i 's/\r$//' "uniq_refs.tsv"
 
 # Read the references file and extract the sequences
 while IFS= read -r ref_name; do
-    awk -v RS='>' -v ref="$ref_name" '$1 == ref {print ">"$0}' murema_DB.fasta > "${ref_name}.fasta"
+    awk -v RS='>' -v ref="$ref_name" '
+    $1 == ref {
+        print ">"$0;
+        exit;
+    }' murema_DB.fasta > "${ref_name}.fasta"
 done < uniq_refs.tsv
 
 # Index founded references
