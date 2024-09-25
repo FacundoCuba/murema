@@ -85,8 +85,8 @@ chmod +x grapher.py
 
 # Create DB directory and index the multifasta
 mkdir -p DB_dir
+cp "$multifasta_file" DB_dir/murema_DB.fasta
 cd DB_dir
-cp "$multifasta_file" murema_DB.fasta
 if [ ! -f "murema_DB_index.1.bt2" ]; then
     bowtie2-build -f murema_DB.fasta murema_DB_index
 fi
