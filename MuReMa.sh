@@ -32,7 +32,7 @@ avg_depth_threshold=1000
 sample_name=""
 log_file=""
 version="3.0"
-trim_reads=true  # Default behavior is to trim reads
+trim_reads=true
 
 # Parse options using getopts
 while getopts "1:2:d:b:r:t:TUvh" option; do
@@ -115,7 +115,7 @@ chmod +x ../formater.py ../grapher.py
 mkdir -p DB_dir
 cp "$multifasta_file" DB_dir/murema_DB.fasta
 cd DB_dir
-
+log_file="DB_dir.log"
 if [ ! -f "murema_DB_index.1.bt2" ]; then
     bowtie2-build -f murema_DB.fasta murema_DB_index || { echo "Error: bowtie2-build failed." | tee -a "$log_file"; exit 1; }
 fi
@@ -125,6 +125,7 @@ cd ../
 if [[ $trim_reads == true ]]; then
     # Perform trimming
     cd "$sample_name"
+    log_file="${sample_name}.log"
     echo "Trimming reads for sample $sample_name" | tee -a "$log_file"
     trim_galore -j 8 -q 30 --paired --length 100 -o ./ --no_report_file "$r1" "$r2" --basename "$sample_name"
     mv "${sample_name}_val_1.fq.gz" "${sample_name}_1.fastq.gz"
@@ -135,6 +136,7 @@ if [[ $trim_reads == true ]]; then
 else
     # Skip trimming
     cd "$sample_name"
+    log_file="${sample_name}.log"
     echo "Skipping trimming step as reads are already trimmed." | tee -a "$log_file"
     r1_trimmed="$r1"
     r2_trimmed="$r2"
