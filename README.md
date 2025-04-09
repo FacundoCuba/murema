@@ -48,7 +48,7 @@ sequence of refence n
 - `-d`, The multifasta file that contains the reference sequences to map to.
 ```bash
 # Basic command
-./MuReMa_V3.sh -1 R1.fastq.gz -2 R2.fastq.gz -d multifasta_file.fasta
+./MuReMa.sh -1 R1.fastq.gz -2 R2.fastq.gz -d multifasta_file.fasta
 ```
 
 ### Optional options
@@ -61,7 +61,7 @@ sequence of refence n
 - `-h`, Display help message.
 ```bash
 # Example of a loop for multiple reads
-for f in *_1.fastq.gz; do ./MuReMa_V3.sh -1 $f -2 ${f%R1.fastq.gz}R2.fastq.gz -d multifasta_file.fasta; done
+for f in *_1.fastq.gz; do ./MuReMa.sh -1 $f -2 ${f%R1.fastq.gz}R2.fastq.gz -d multifasta_file.fasta; done
 ```
 
 ## The Outputs
