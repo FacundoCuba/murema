@@ -77,6 +77,7 @@ for f in *_1.fastq.gz; do ./MuReMa.sh -1 $f -2 ${f%R1.fastq.gz}R2.fastq.gz -d mu
 - DB_dir directory:
   - A copy of the original multifasta file used as the reference sequences database and its index files.
   - The extracted individual references and their index files.
+  - Log file: to track script behavior and identify errors `DB_dir.log`.
 
 ## Contact
 Email me to: facundogcuba@gmail.com or raise an issue
