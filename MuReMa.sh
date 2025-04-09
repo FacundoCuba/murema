@@ -170,6 +170,7 @@ cd ../
 
 # Extract sequences from DB
 cd DB_dir
+log_file="DB_dir.log"
 while IFS= read -r ref_name; do
     awk -v RS='>' -v ref="$ref_name" '$1 == ref { print ">"$0; exit }' murema_DB.fasta > "${ref_name}.fasta"
 done < "../${sample_name}/${sample_name}.refs.tsv"
@@ -182,6 +183,7 @@ cd ../
 
 # Consensus & Graphing
 cd "$sample_name"
+log_file="${sample_name}.log"
 while IFS= read -r ref_name; do
     bowtie2 --end-to-end --very-sensitive -p 8 -x "../DB_dir/${ref_name}_index" -1 "$r1_trimmed" -2 "$r2_trimmed" | \
     samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.${ref_name}.sorted.bam"
