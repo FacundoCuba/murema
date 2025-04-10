@@ -31,6 +31,7 @@ read_length=150
 avg_depth_threshold=1000
 sample_name=""
 log_file=""
+DB_log_file=""
 version="3.0"
 trim_reads=true
 
@@ -111,13 +112,13 @@ done
 # Ensure Python scripts are executable
 chmod +x ../formater.py ../grapher.py
 
-# Create DB directory and index the multifasta
+# Create DB directory, log file and index the multifasta
 mkdir -p DB_dir
 cp "$multifasta_file" DB_dir/murema_DB.fasta
 cd DB_dir
-log_file="DB_dir.log"
+DB_log_file="DB_dir.log"
 if [ ! -f "murema_DB_index.1.bt2" ]; then
-    bowtie2-build -f murema_DB.fasta murema_DB_index || { echo "Error: bowtie2-build failed." | tee -a "$log_file"; exit 1; }
+    bowtie2-build -f murema_DB.fasta murema_DB_index || { echo "Error: bowtie2-build failed." | tee -a "$DB_log_file"; exit 1; }
 fi
 cd ../
 
@@ -125,7 +126,6 @@ cd ../
 if [[ $trim_reads == true ]]; then
     # Perform trimming
     cd "$sample_name"
-    log_file="${sample_name}.log"
     echo "Trimming reads for sample $sample_name" | tee -a "$log_file"
     trim_galore -j 8 -q 30 --paired --length 100 -o ./ --no_report_file "$r1" "$r2" --basename "$sample_name"
     mv "${sample_name}_val_1.fq.gz" "${sample_name}_1.fastq.gz"
@@ -136,7 +136,6 @@ if [[ $trim_reads == true ]]; then
 else
     # Skip trimming
     cd "$sample_name"
-    log_file="${sample_name}.log"
     echo "Skipping trimming step as reads are already trimmed." | tee -a "$log_file"
     r1_trimmed="$r1"
     r2_trimmed="$r2"
@@ -172,20 +171,18 @@ cd ../
 
 # Extract sequences from DB
 cd DB_dir
-log_file="DB_dir.log"
 while IFS= read -r ref_name; do
     awk -v RS='>' -v ref="$ref_name" '$1 == ref { print ">"$0; exit }' murema_DB.fasta > "${ref_name}.fasta"
 done < "../${sample_name}/${sample_name}.refs.tsv"
 
 # Index references
 for f in *.fasta; do
-    [ ! -f "${f%.fasta}_index.1.bt2" ] && bowtie2-build -f "$f" "${f%.fasta}_index" | tee -a "$log_file"
+    [ ! -f "${f%.fasta}_index.1.bt2" ] && bowtie2-build -f "$f" "${f%.fasta}_index" | tee -a "$DB_log_file"
 done
 cd ../
 
 # Consensus & Graphing
 cd "$sample_name"
-log_file="${sample_name}.log"
 while IFS= read -r ref_name; do
     bowtie2 --end-to-end --very-sensitive -p 8 -x "../DB_dir/${ref_name}_index" -1 "$r1_trimmed" -2 "$r2_trimmed" | \
     samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.${ref_name}.sorted.bam"
