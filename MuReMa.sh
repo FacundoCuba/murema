@@ -15,6 +15,7 @@ function display_usage() {
     echo "  -U         Specify that the provided reads are untrimmed (default)"
     echo "  -v         Display the version of the script"
     echo "  -h         Display this help message"
+    echo ""
     exit 1
 }
 
@@ -72,6 +73,7 @@ fi
 mkdir -p "$sample_name"
 cd "$sample_name"
 log_file="${sample_name}.log"
+
 # Log initial arguments
 {
     echo "Script invoked with the following arguments:"
@@ -186,8 +188,6 @@ cd "$sample_name"
 while IFS= read -r ref_name; do
     bowtie2 --end-to-end --very-sensitive -p 8 -x "../DB_dir/${ref_name}_index" -1 "$r1_trimmed" -2 "$r2_trimmed" | \
     samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.${ref_name}.sorted.bam"
-
-    # Consensus generation
     if [ -n "$bed_file" ] && [ -f "$bed_file" ]; then
         echo "Creating consensus sequence with primer trimming using $ref_name" | tee -a "$log_file"
         samtools index "${sample_name}.${ref_name}.sorted.bam"
@@ -196,17 +196,13 @@ while IFS= read -r ref_name; do
         samtools index "${sample_name}.${ref_name}.primertrim.sorted.bam"
         samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}.primertrim.sorted.bam" | \
             ivar consensus -p "${sample_name}.${ref_name}.consensus" -t 0.75
-        # Graphing with grapher.py
         grapher.py "${sample_name}.${ref_name}.primertrim.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
     else
         echo "Creating consensus sequence without primer trimming for $ref_name" | tee -a "$log_file"
         samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}.sorted.bam" | \
             ivar consensus -p "${sample_name}.${ref_name}.consensus" -t 0.75
-        # Graphing with grapher.py
         grapher.py "${sample_name}.${ref_name}.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
     fi
 done < "${sample_name}.refs.tsv"
-
 echo "Script completed successfully." | tee -a "$log_file"
-
 cd ../
