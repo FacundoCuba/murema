@@ -13,9 +13,10 @@ MuReMa was originally created as an easy way to work with segmented viruses, but
 - [Acknowledgments](#acknowledgments)
 
 ## Installation
-Just download the scripts (`MuReMa.sh`, `formater.py`, and `grapher.py`).
+Just download the scripts (`MuReMa.sh`, `formater.py`, and `grapher.py`) and make it executable `chmod +x`.
 
 ### Software Tools Requiered
+- [trim_galore](https://github.com/FelixKrueger/TrimGalore)
 - [bowtie2](https://github.com/BenLangmead/bowtie2)
 - [samtools](https://github.com/samtools/samtools)
 - [ivar](https://github.com/gkarthik/ivar)
