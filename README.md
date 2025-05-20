@@ -55,14 +55,14 @@ sequence of refence n
 ### Optional options
 - `-b`, Bed file OR path to bed file.
 - `-r`, The read length. An integer > 0. Default = 150.
-- `-t`, The average depth threshold. An integer > 0. Default = 1000. The average depth threshold is a key value. If the reads aligned to a reference equals or surpasses it, MuReMa will select that reference to obtain a consensus using it as template and generate a graph for it. The threshold could be lower if you work with bacterial reads (for example, `-t 100`) or higher if you are working with amplicons (for example, `-t 3000`).
+- `-t`, The average depth threshold. An integer > 0. Default = 1000. The average depth threshold is a key value. If the reads aligned to a reference equals or surpasses it, MuReMa will select that reference to obtain a consensus using it as template and generate a graph for it. The threshold could be lower if you work with bacterial reads (for example, `-t 100`) or higher if you are working with amplicons (for example, `-t 5000`).
 - `-T`, Specify that the provided reads are already trimmed.
 - `-U`, Specify that the provided reads are untrimmed (default).
 - `-v`, Display the version of the script.
 - `-h`, Display help message.
 ```bash
-# Example of a loop for multiple reads
-for f in *_1.fastq.gz; do ./MuReMa.sh -1 $f -2 ${f%R1.fastq.gz}R2.fastq.gz -d multifasta_file.fasta; done
+# Example of a loop for multiple trimmed reads
+for f in *_1.fastq.gz; do ./MuReMa.sh -1 $f -2 ${f%_1.fastq.gz}_2.fastq.gz -d multifasta_file.fasta -T; done
 ```
 
 ## The Outputs
