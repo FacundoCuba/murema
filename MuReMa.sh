@@ -129,7 +129,7 @@ if [[ $trim_reads == true ]]; then
     # Perform trimming
     cd "$sample_name"
     echo "Trimming reads for sample $sample_name" | tee -a "$log_file"
-    trim_galore -j 8 -q 30 --paired --length 100 -o ./ --no_report_file "$r1" "$r2" --basename "$sample_name"
+    trim_galore -j 8 -q 30 --paired -o ./ --no_report_file "$r1" "$r2" --basename "$sample_name"
     mv "${sample_name}_val_1.fq.gz" "${sample_name}_1.fastq.gz"
     mv "${sample_name}_val_2.fq.gz" "${sample_name}_2.fastq.gz"
     r1_trimmed="${sample_name}_1.fastq.gz"
