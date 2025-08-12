@@ -2,7 +2,7 @@
 
 # Function to display script usage
 function display_usage() {
-    echo "Usage: $0 -1 FASTQ -2 FASTQ -d FILE [-b FILE] [-r INTEGER] [-t INTEGER] [-T|-U] [-v] [-h]"
+    echo "Usage: $0 -1 FASTQ -2 FASTQ -d FILE [-b FILE] [-r INTEGER] [-t INTEGER] [-T|-U] [-m] [-v] [-h]"
     echo ""
     echo "Options:"
     echo "  -1 FASTQ   Forward read OR path to forward read"
@@ -13,15 +13,15 @@ function display_usage() {
     echo "  -t INTEGER Average Depth threshold (default: 1000)"
     echo "  -T         Specify that the provided reads are already trimmed"
     echo "  -U         Specify that the provided reads are untrimmed (default)"
+    echo "  -m         Specify that the consensus sequence will be called using the specifically aligned reads"
     echo "  -v         Display the version of the script"
     echo "  -h         Display this help message"
-    echo ""
     exit 1
 }
 
 # Display version
 function display_version() {
-    echo "Script Version: 3.0"
+    echo "Script Version: 4.0"
     exit 0
 }
 
@@ -33,11 +33,12 @@ avg_depth_threshold=1000
 sample_name=""
 log_file=""
 DB_log_file=""
-version="3.0"
+version="4.0"
 trim_reads=true
+meta=false
 
 # Parse options using getopts
-while getopts "1:2:d:b:r:t:TUvh" option; do
+while getopts "1:2:d:b:r:t:TUmvh" option; do
     case "$option" in
         1) r1="$PWD/$OPTARG";;
         2) r2="$PWD/$OPTARG";;
@@ -47,6 +48,7 @@ while getopts "1:2:d:b:r:t:TUvh" option; do
         t) avg_depth_threshold="$OPTARG";;
         T) trim_reads=false;;
         U) trim_reads=true;;
+        m) meta=true;;
         v) display_version;;
         h) display_usage;;
         :) printf "Missing argument for -%s\n" "$OPTARG" >&2; display_usage >&2;;
@@ -85,6 +87,7 @@ log_file="${sample_name}.log"
     echo "Read length: $read_length"
     echo "Average Depth threshold: $avg_depth_threshold"
     echo "Trimming reads: $trim_reads"
+    echo "Metagenomic called consensus: $meta"
 } > "$log_file"
 cd ../
 
@@ -111,9 +114,6 @@ for tool in trim_galore bowtie2 samtools python3 ivar; do
     command -v $tool >/dev/null 2>&1 || { echo "$tool is required but it's not installed. Aborting." >&2 | tee -a "$log_file"; exit 1; }
 done
 
-# Ensure Python scripts are executable
-chmod +x ../formater.py ../grapher.py
-
 # Create DB directory, log file and index the multifasta
 mkdir -p DB_dir
 cp "$multifasta_file" DB_dir/murema_DB.fasta
@@ -125,43 +125,36 @@ fi
 cd ../
 
 # Check if reads need trimming
+cd "$sample_name"
 if [[ $trim_reads == true ]]; then
     # Perform trimming
-    cd "$sample_name"
     echo "Trimming reads for sample $sample_name" | tee -a "$log_file"
     trim_galore -j 8 -q 30 --paired -o ./ --no_report_file "$r1" "$r2" --basename "$sample_name"
     mv "${sample_name}_val_1.fq.gz" "${sample_name}_1.fastq.gz"
     mv "${sample_name}_val_2.fq.gz" "${sample_name}_2.fastq.gz"
     r1_trimmed="${sample_name}_1.fastq.gz"
     r2_trimmed="${sample_name}_2.fastq.gz"
-    cd ../
 else
     # Skip trimming
-    cd "$sample_name"
     echo "Skipping trimming step as reads are already trimmed." | tee -a "$log_file"
     r1_trimmed="$r1"
     r2_trimmed="$r2"
-    cd ../
 fi
 
 # Align reads and sort BAM
-cd "$sample_name"
 echo "Aligning reads and generating sorted BAM for $sample_name" | tee -a "$log_file"
 bowtie2 --end-to-end --very-sensitive -p 8 -x "../DB_dir/murema_DB_index" -1 "$r1_trimmed" -2 "$r2_trimmed" | \
 samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.sorted.bam" || { echo "Error: bowtie2 or samtools sorting failed" | tee -a "$log_file"; exit 1; }
+samtools index "${sample_name}.sorted.bam"
+samtools idxstats "${sample_name}.sorted.bam" > "${sample_name}.tsv"
 
 # Check if optional bed_file exists
 if [ -n "$bed_file" ] && [ -f "$bed_file" ]; then
     echo "Trimming primers using bed file: $bed_file" | tee -a "$log_file"
-    samtools index "${sample_name}.sorted.bam"
     ivar trim -e -i "${sample_name}.sorted.bam" -b "${bed_file}" -p "${sample_name}.primertrim"
     samtools sort "${sample_name}.primertrim.bam" -o "${sample_name}.primertrim.sorted.bam"
-    samtools index "${sample_name}.primertrim.sorted.bam"
-    samtools idxstats "${sample_name}.primertrim.sorted.bam" > "${sample_name}.tsv"
 else
     echo "No bed file provided or file not found; skipping primer trimming." | tee -a "$log_file"
-    samtools index "${sample_name}.sorted.bam"
-    samtools idxstats "${sample_name}.sorted.bam" > "${sample_name}.tsv"
 fi
 
 # Run formater.py
@@ -190,18 +183,34 @@ while IFS= read -r ref_name; do
     samtools sort | samtools view -@ 8 -b -F 4 -q 1 -o "${sample_name}.${ref_name}.sorted.bam"
     if [ -n "$bed_file" ] && [ -f "$bed_file" ]; then
         echo "Creating consensus sequence with primer trimming using $ref_name" | tee -a "$log_file"
-        samtools index "${sample_name}.${ref_name}.sorted.bam"
         ivar trim -e -i "${sample_name}.${ref_name}.sorted.bam" -b "${bed_file}" -p "${sample_name}.${ref_name}.primertrim"
         samtools sort "${sample_name}.${ref_name}.primertrim.bam" -o "${sample_name}.${ref_name}.primertrim.sorted.bam"
-        samtools index "${sample_name}.${ref_name}.primertrim.sorted.bam"
-        samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}.primertrim.sorted.bam" | \
-            ivar consensus -p "${sample_name}.${ref_name}.consensus" -t 0.75
-        grapher.py "${sample_name}.${ref_name}.primertrim.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
+        if [[ $meta == true ]]; then
+            samtools view  -@ 8 -b -F 4 -q 1 "${sample_name}.primertrim.sorted.bam" "$ref_name" -o "${sample_name}.${ref_name}_filtered.primertrim.sorted.bam"
+            samtools index "${sample_name}.${ref_name}_filtered.primertrim.sorted.bam"
+            samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}_filtered.primertrim.sorted.bam" | \
+                ivar consensus -p "${sample_name}.${ref_name}_filtered.primertrim.consensus" -t 0.75
+            grapher.py "${sample_name}.${ref_name}_filtered.primertrim.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
+        else
+            samtools index "${sample_name}.${ref_name}.primertrim.sorted.bam"
+            samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}.primertrim.sorted.bam" | \
+                ivar consensus -p "${sample_name}.${ref_name}.primertrim.consensus" -t 0.75
+            grapher.py "${sample_name}.${ref_name}.primertrim.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
+        fi
     else
-        echo "Creating consensus sequence without primer trimming for $ref_name" | tee -a "$log_file"
-        samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}.sorted.bam" | \
-            ivar consensus -p "${sample_name}.${ref_name}.consensus" -t 0.75
-        grapher.py "${sample_name}.${ref_name}.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
+        echo "Creating consensus sequence without primer trimming using $ref_name" | tee -a "$log_file"
+        if [[ $meta == true ]]; then
+            samtools view  -@ 8 -b -F 4 -q 1 "${sample_name}.sorted.bam" "$ref_name" -o "${sample_name}.${ref_name}_filtered.sorted.bam"
+            samtools index "${sample_name}.${ref_name}_filtered.sorted.bam"
+            samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}_filtered.sorted.bam" | \
+                ivar consensus -p "${sample_name}.${ref_name}_filtered.consensus" -t 0.75
+            grapher.py "${sample_name}.${ref_name}_filtered.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
+        else
+            samtools index "${sample_name}.${ref_name}.sorted.bam"
+            samtools mpileup -A -d 6000000 -B -Q 0 -q 20 --reference "../DB_dir/${ref_name}.fasta" "${sample_name}.${ref_name}.sorted.bam" | \
+                ivar consensus -p "${sample_name}.${ref_name}.consensus" -t 0.75
+            grapher.py "${sample_name}.${ref_name}.sorted.bam" "$sample_name" "$ref_name" "$avg_depth_threshold" || { echo "grapher.py failed" | tee -a "$log_file"; exit 1; }
+        fi
     fi
 done < "${sample_name}.refs.tsv"
 echo "Script completed successfully." | tee -a "$log_file"
