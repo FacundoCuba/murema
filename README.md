@@ -13,7 +13,7 @@ MuReMa was originally created as an easy way to work with segmented viruses, but
 - [Acknowledgments](#acknowledgments)
 
 ## Installation
-Just download the scripts (`MuReMa.sh`, `formater.py`, and `grapher.py`) and make it executable `chmod +x`.
+Just download the scripts (`MuReMa.sh`, `formater.py`, and `grapher.py`) and run `chmod +x` to make them executable. Make sure these files are in your `$PATH`.
 
 ### Software Tools Requiered
 - [trim_galore](https://github.com/FelixKrueger/TrimGalore)
@@ -58,6 +58,7 @@ sequence of refence n
 - `-t`, The average depth threshold. An integer > 0. Default = 1000. The average depth threshold is a key value. If the reads aligned to a reference equals or surpasses it, MuReMa will select that reference to obtain a consensus using it as template and generate a graph for it. The threshold could be lower if you work with bacterial reads (for example, `-t 100`) or higher if you are working with amplicons (for example, `-t 5000`).
 - `-T`, Specify that the provided reads are already trimmed.
 - `-U`, Specify that the provided reads are untrimmed (default).
+- `-m`, Specify that the consensus sequence will be called using the specifically aligned reads.
 - `-v`, Display the version of the script.
 - `-h`, Display help message.
 ```bash
